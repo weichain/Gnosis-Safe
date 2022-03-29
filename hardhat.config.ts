@@ -8,7 +8,6 @@ import { NetworkUserConfig } from "hardhat/types";
 import { resolve } from "path";
 import "solidity-coverage";
 
-import "./tasks/accounts";
 import "./tasks/deploy";
 
 dotenvConfig({ path: resolve(__dirname, "./.env") });
@@ -98,17 +97,12 @@ const config: HardhatUserConfig = {
   paths: {
     artifacts: "./artifacts",
     cache: "./cache",
-    sources: "./contracts",
+    sources: "./contracts/version-1.1.1",
     tests: "./test",
   },
   solidity: {
-    version: "0.8.13",
+    version: "0.5.4",
     settings: {
-      metadata: {
-        // Not including the metadata hash
-        // https://github.com/paulrberg/solidity-template/issues/31
-        bytecodeHash: "none",
-      },
       // Disable the optimizer when debugging
       // https://hardhat.org/hardhat-network/#solidity-optimizer-support
       optimizer: {

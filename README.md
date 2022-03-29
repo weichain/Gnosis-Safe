@@ -90,14 +90,6 @@ Delete the smart contract artifacts, the coverage reports and the Hardhat cache:
 $ yarn clean
 ```
 
-### Deploy
-
-Deploy the contracts to Hardhat Network:
-
-```sh
-$ yarn deploy --greeting "Bonjour, le monde!"
-```
-
 ## Syntax Highlighting
 
 If you use VSCode, you can enjoy syntax highlighting for your Solidity code via the
@@ -112,3 +104,54 @@ compiler version is to add the following fields to your VSCode user settings:
 ```
 
 Where `v0.8.13+commit.abaa5c0e` can be replaced with your version of choice.
+
+### Deploy
+
+Deploy the factories:
+
+```sh
+$ yarn hardhat --network "..." deploy:factories
+```
+
+Deploy the libraries:
+
+```sh
+$ yarn hardhat --network "..." deploy:libraries
+```
+
+Deploy master copy:
+
+```sh
+$ yarn hardhat --network "..." deploy:master-copy
+```
+
+Deploy modules:
+
+```sh
+$ yarn hardhat --network "..." deploy:modules
+```
+
+Deploy timelock:
+
+```sh
+$ yarn hardhat --network "..." deploy:timelock --admin "0x..." --delay "..."
+```
+
+Create proxy:
+
+```sh
+$ yarn hardhat --network "..." create:proxy --proxy-factory "0x..." --master-copy "0x..."
+```
+
+Query storage:
+
+```sh
+$ yarn hardhat --network "..." query:storage --contract "..." --address "0x..." --storage-elements "..."
+```
+
+Other options:
+
+```sh
+--printResults    Prints resulting addresses to the console. Default value is true.
+--confirmations   Number of block confirmations to wait after deployment of each contract. Default is 0.
+```
