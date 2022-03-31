@@ -6,3 +6,4 @@ export const TASK_DEPLOY_MODULES: string = "deploy:modules";
 export const TASK_DEPLOY_TIMELOCK: string = "deploy:timelock";
 export const TASK_CREATE_PROXY: string = "create:proxy";
 export const TASK_QUERY_STORAGE: string = "query:storage";
+export const TASK_QUERY_GNOSIS_SAFE: string = "query:gnosis-safe";
