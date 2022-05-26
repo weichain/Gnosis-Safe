@@ -6,15 +6,21 @@ import "./common/MasterCopy.sol";
 import "./common/SignatureDecoder.sol";
 import "./common/SecuredTokenTransfer.sol";
 import "./interfaces/ISignatureValidator.sol";
-import "./external/SafeMath.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
 
 /// @title Gnosis Safe - A multisignature wallet with support for confirmations using signed messages based on ERC191.
 /// @author Stefan George - <stefan@gnosis.io>
 /// @author Richard Meissner - <richard@gnosis.io>
 /// @author Ricardo Guilherme Schmidt - (Status Research & Development GmbH) - Gas Token Payment
-contract GnosisSafe
-    is MasterCopy, ModuleManager, OwnerManager, SignatureDecoder, SecuredTokenTransfer, ISignatureValidatorConstants, FallbackManager {
-
+contract GnosisSafe is
+    MasterCopy,
+    ModuleManager,
+    OwnerManager,
+    SignatureDecoder,
+    SecuredTokenTransfer,
+    ISignatureValidatorConstants,
+    FallbackManager
+{
     using SafeMath for uint256;
 
     string public constant NAME = "Gnosis Safe";
@@ -23,7 +29,8 @@ contract GnosisSafe
     //keccak256(
     //    "EIP712Domain(address verifyingContract)"
     //);
-    bytes32 private constant DOMAIN_SEPARATOR_TYPEHASH = 0x035aff83d86937d35b32e04f0ddc6ff469290eef2f1b692d8a815c89404d4749;
+    bytes32 private constant DOMAIN_SEPARATOR_TYPEHASH =
+        0x035aff83d86937d35b32e04f0ddc6ff469290eef2f1b692d8a815c89404d4749;
 
     //keccak256(
     //    "SafeTx(address to,uint256 value,bytes data,uint8 operation,uint256 safeTxGas,uint256 baseGas,uint256 gasPrice,address gasToken,address refundReceiver,uint256 nonce)"
@@ -35,19 +42,10 @@ contract GnosisSafe
     //);
     bytes32 private constant SAFE_MSG_TYPEHASH = 0x60b3cbf8b4a223d68d641b3b6ddf9a298e7f33710cf3d3a9d1146b5a6150fbca;
 
-    event ApproveHash(
-        bytes32 indexed approvedHash,
-        address indexed owner
-    );
-    event SignMsg(
-        bytes32 indexed msgHash
-    );
-    event ExecutionFailure(
-        bytes32 txHash, uint256 payment
-    );
-    event ExecutionSuccess(
-        bytes32 txHash, uint256 payment
-    );
+    event ApproveHash(bytes32 indexed approvedHash, address indexed owner);
+    event SignMsg(bytes32 indexed msgHash);
+    event ExecutionFailure(bytes32 txHash, uint256 payment);
+    event ExecutionSuccess(bytes32 txHash, uint256 payment);
 
     uint256 public nonce;
     bytes32 public domainSeparator;
@@ -82,9 +80,7 @@ contract GnosisSafe
         address paymentToken,
         uint256 payment,
         address payable paymentReceiver
-    )
-        external
-    {
+    ) external {
         require(domainSeparator == 0, "Domain Separator already set!");
         domainSeparator = keccak256(abi.encode(DOMAIN_SEPARATOR_TYPEHASH, this));
         setupOwners(_owners, _threshold);
@@ -122,16 +118,20 @@ contract GnosisSafe
         address gasToken,
         address payable refundReceiver,
         bytes calldata signatures
-    )
-        external
-        returns (bool success)
-    {
+    ) external returns (bool success) {
         bytes32 txHash;
         // Use scope here to limit variable lifetime and prevent `stack too deep` errors
         {
             bytes memory txHashData = encodeTransactionData(
-                to, value, data, operation, // Transaction info
-                safeTxGas, baseGas, gasPrice, gasToken, refundReceiver, // Payment info
+                to,
+                value,
+                data,
+                operation, // Transaction info
+                safeTxGas,
+                baseGas,
+                gasPrice,
+                gasToken,
+                refundReceiver, // Payment info
                 nonce
             );
             // Increase nonce and execute transaction.
@@ -162,10 +162,7 @@ contract GnosisSafe
         uint256 gasPrice,
         address gasToken,
         address payable refundReceiver
-    )
-        private
-        returns (uint256 payment)
-    {
+    ) private returns (uint256 payment) {
         // solium-disable-next-line security/no-tx-origin
         address payable receiver = refundReceiver == address(0) ? tx.origin : refundReceiver;
         if (gasToken == address(0)) {
@@ -180,15 +177,18 @@ contract GnosisSafe
     }
 
     /**
-    * @dev Checks whether the signature provided is valid for the provided data, hash. Will revert otherwise.
-    * @param dataHash Hash of the data (could be either a message hash or transaction hash)
-    * @param data That should be signed (this is passed to an external validator contract)
-    * @param signatures Signature data that should be verified. Can be ECDSA signature, contract signature (EIP-1271) or approved hash.
-    * @param consumeHash Indicates that in case of an approved hash the storage can be freed to save gas
-    */
-    function checkSignatures(bytes32 dataHash, bytes memory data, bytes memory signatures, bool consumeHash)
-        internal
-    {
+     * @dev Checks whether the signature provided is valid for the provided data, hash. Will revert otherwise.
+     * @param dataHash Hash of the data (could be either a message hash or transaction hash)
+     * @param data That should be signed (this is passed to an external validator contract)
+     * @param signatures Signature data that should be verified. Can be ECDSA signature, contract signature (EIP-1271) or approved hash.
+     * @param consumeHash Indicates that in case of an approved hash the storage can be freed to save gas
+     */
+    function checkSignatures(
+        bytes32 dataHash,
+        bytes memory data,
+        bytes memory signatures,
+        bool consumeHash
+    ) internal {
         // Load threshold to avoid multiple storage loads
         uint256 _threshold = threshold;
         // Check that a threshold is set
@@ -215,7 +215,10 @@ contract GnosisSafe
                 require(uint256(s) >= _threshold.mul(65), "Invalid contract signature location: inside static part");
 
                 // Check that signature data pointer (s) is in bounds (points to the length of data -> 32 bytes)
-                require(uint256(s).add(32) <= signatures.length, "Invalid contract signature location: length not present");
+                require(
+                    uint256(s).add(32) <= signatures.length,
+                    "Invalid contract signature location: length not present"
+                );
 
                 // Check if the contract signature is in bounds: start of data is s + 32 and end is start + signature length
                 uint256 contractSignatureLen;
@@ -223,7 +226,10 @@ contract GnosisSafe
                 assembly {
                     contractSignatureLen := mload(add(add(signatures, s), 0x20))
                 }
-                require(uint256(s).add(32).add(contractSignatureLen) <= signatures.length, "Invalid contract signature location: data not complete");
+                require(
+                    uint256(s).add(32).add(contractSignatureLen) <= signatures.length,
+                    "Invalid contract signature location: data not complete"
+                );
 
                 // Check signature
                 bytes memory contractSignature;
@@ -232,25 +238,36 @@ contract GnosisSafe
                     // The signature data for contract signatures is appended to the concatenated signatures and the offset is stored in s
                     contractSignature := add(add(signatures, s), 0x20)
                 }
-                require(ISignatureValidator(currentOwner).isValidSignature(data, contractSignature) == EIP1271_MAGIC_VALUE, "Invalid contract signature provided");
-            // If v is 1 then it is an approved hash
+                require(
+                    ISignatureValidator(currentOwner).isValidSignature(data, contractSignature) == EIP1271_MAGIC_VALUE,
+                    "Invalid contract signature provided"
+                );
+                // If v is 1 then it is an approved hash
             } else if (v == 1) {
                 // When handling approved hashes the address of the approver is encoded into r
                 currentOwner = address(uint256(r));
                 // Hashes are automatically approved by the sender of the message or when they have been pre-approved via a separate transaction
-                require(msg.sender == currentOwner || approvedHashes[currentOwner][dataHash] != 0, "Hash has not been approved");
+                require(
+                    msg.sender == currentOwner || approvedHashes[currentOwner][dataHash] != 0,
+                    "Hash has not been approved"
+                );
                 // Hash has been marked for consumption. If this hash was pre-approved free storage
                 if (consumeHash && msg.sender != currentOwner) {
                     approvedHashes[currentOwner][dataHash] = 0;
                 }
             } else if (v > 30) {
                 // To support eth_sign and similar we adjust v and hash the messageHash with the Ethereum message prefix before applying ecrecover
-                currentOwner = ecrecover(keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", dataHash)), v - 4, r, s);
+                currentOwner = ecrecover(
+                    keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", dataHash)),
+                    v - 4,
+                    r,
+                    s
+                );
             } else {
                 // Use ecrecover with the messageHash for EOA signatures
                 currentOwner = ecrecover(dataHash, v, r, s);
             }
-            require (
+            require(
                 currentOwner > lastOwner && owners[currentOwner] != address(0) && currentOwner != SENTINEL_OWNERS,
                 "Invalid owner provided"
             );
@@ -269,11 +286,12 @@ contract GnosisSafe
     /// @param data Data payload of Safe transaction.
     /// @param operation Operation type of Safe transaction.
     /// @return Estimate without refunds and overhead fees (base transaction and payload data gas costs).
-    function requiredTxGas(address to, uint256 value, bytes calldata data, Enum.Operation operation)
-        external
-        authorized
-        returns (uint256)
-    {
+    function requiredTxGas(
+        address to,
+        uint256 value,
+        bytes calldata data,
+        Enum.Operation operation
+    ) external authorized returns (uint256) {
         uint256 startGas = gasleft();
         // We don't provide an error message here, as we use it to return the estimate
         // solium-disable-next-line error-reason
@@ -284,43 +302,35 @@ contract GnosisSafe
     }
 
     /**
-    * @dev Marks a hash as approved. This can be used to validate a hash that is used by a signature.
-    * @param hashToApprove The hash that should be marked as approved for signatures that are verified by this contract.
-    */
-    function approveHash(bytes32 hashToApprove)
-        external
-    {
+     * @dev Marks a hash as approved. This can be used to validate a hash that is used by a signature.
+     * @param hashToApprove The hash that should be marked as approved for signatures that are verified by this contract.
+     */
+    function approveHash(bytes32 hashToApprove) external {
         require(owners[msg.sender] != address(0), "Only owners can approve a hash");
         approvedHashes[msg.sender][hashToApprove] = 1;
         emit ApproveHash(hashToApprove, msg.sender);
     }
 
     /**
-    * @dev Marks a message as signed
-    * @param _data Arbitrary length data that should be marked as signed on the behalf of address(this)
-    */
-    function signMessage(bytes calldata _data)
-        external
-        authorized
-    {
+     * @dev Marks a message as signed
+     * @param _data Arbitrary length data that should be marked as signed on the behalf of address(this)
+     */
+    function signMessage(bytes calldata _data) external authorized {
         bytes32 msgHash = getMessageHash(_data);
         signedMessages[msgHash] = 1;
         emit SignMsg(msgHash);
     }
 
     /**
-    * Implementation of ISignatureValidator (see `interfaces/ISignatureValidator.sol`)
-    * @dev Should return whether the signature provided is valid for the provided data.
-    *       The save does not implement the interface since `checkSignatures` is not a view method.
-    *       The method will not perform any state changes (see parameters of `checkSignatures`)
-    * @param _data Arbitrary length data signed on the behalf of address(this)
-    * @param _signature Signature byte array associated with _data
-    * @return a bool upon valid or invalid signature with corresponding _data
-    */
-    function isValidSignature(bytes calldata _data, bytes calldata _signature)
-        external
-        returns (bytes4)
-    {
+     * Implementation of ISignatureValidator (see `interfaces/ISignatureValidator.sol`)
+     * @dev Should return whether the signature provided is valid for the provided data.
+     *       The save does not implement the interface since `checkSignatures` is not a view method.
+     *       The method will not perform any state changes (see parameters of `checkSignatures`)
+     * @param _data Arbitrary length data signed on the behalf of address(this)
+     * @param _signature Signature byte array associated with _data
+     * @return a bool upon valid or invalid signature with corresponding _data
+     */
+    function isValidSignature(bytes calldata _data, bytes calldata _signature) external returns (bytes4) {
         bytes32 messageHash = getMessageHash(_data);
         if (_signature.length == 0) {
             require(signedMessages[messageHash] != 0, "Hash not approved");
@@ -334,19 +344,9 @@ contract GnosisSafe
     /// @dev Returns hash of a message that can be signed by owners.
     /// @param message Message that should be hashed
     /// @return Message hash.
-    function getMessageHash(
-        bytes memory message
-    )
-        public
-        view
-        returns (bytes32)
-    {
-        bytes32 safeMessageHash = keccak256(
-            abi.encode(SAFE_MSG_TYPEHASH, keccak256(message))
-        );
-        return keccak256(
-            abi.encodePacked(byte(0x19), byte(0x01), domainSeparator, safeMessageHash)
-        );
+    function getMessageHash(bytes memory message) public view returns (bytes32) {
+        bytes32 safeMessageHash = keccak256(abi.encode(SAFE_MSG_TYPEHASH, keccak256(message)));
+        return keccak256(abi.encodePacked(bytes1(0x19), bytes1(0x01), domainSeparator, safeMessageHash));
     }
 
     /// @dev Returns the bytes that are hashed to be signed by owners.
@@ -372,15 +372,23 @@ contract GnosisSafe
         address gasToken,
         address refundReceiver,
         uint256 _nonce
-    )
-        public
-        view
-        returns (bytes memory)
-    {
+    ) public view returns (bytes memory) {
         bytes32 safeTxHash = keccak256(
-            abi.encode(SAFE_TX_TYPEHASH, to, value, keccak256(data), operation, safeTxGas, baseGas, gasPrice, gasToken, refundReceiver, _nonce)
+            abi.encode(
+                SAFE_TX_TYPEHASH,
+                to,
+                value,
+                keccak256(data),
+                operation,
+                safeTxGas,
+                baseGas,
+                gasPrice,
+                gasToken,
+                refundReceiver,
+                _nonce
+            )
         );
-        return abi.encodePacked(byte(0x19), byte(0x01), domainSeparator, safeTxHash);
+        return abi.encodePacked(bytes1(0x19), bytes1(0x01), domainSeparator, safeTxHash);
     }
 
     /// @dev Returns hash to be signed by owners.
@@ -406,11 +414,21 @@ contract GnosisSafe
         address gasToken,
         address refundReceiver,
         uint256 _nonce
-    )
-        public
-        view
-        returns (bytes32)
-    {
-        return keccak256(encodeTransactionData(to, value, data, operation, safeTxGas, baseGas, gasPrice, gasToken, refundReceiver, _nonce));
+    ) public view returns (bytes32) {
+        return
+            keccak256(
+                encodeTransactionData(
+                    to,
+                    value,
+                    data,
+                    operation,
+                    safeTxGas,
+                    baseGas,
+                    gasPrice,
+                    gasToken,
+                    refundReceiver,
+                    _nonce
+                )
+            );
     }
 }

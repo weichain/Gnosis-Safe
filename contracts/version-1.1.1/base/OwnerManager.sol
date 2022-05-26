@@ -1,10 +1,10 @@
 pragma solidity >=0.5.0 <0.7.0;
-import "../common/SelfAuthorized.sol";
+import "../common/SnapshotAuthorized.sol";
 
 /// @title OwnerManager - Manages a set of owners and a threshold to perform actions.
 /// @author Stefan George - <stefan@gnosis.pm>
 /// @author Richard Meissner - <richard@gnosis.pm>
-contract OwnerManager is SelfAuthorized {
+contract OwnerManager is SnapshotAuthorized {
 
     event AddedOwner(address owner);
     event RemovedOwner(address owner);
@@ -51,7 +51,7 @@ contract OwnerManager is SelfAuthorized {
     /// @param _threshold New threshold.
     function addOwnerWithThreshold(address owner, uint256 _threshold)
         public
-        authorized
+        snapshotAuthorized
     {
         // Owner address cannot be null.
         require(owner != address(0) && owner != SENTINEL_OWNERS, "Invalid owner address provided");
@@ -73,7 +73,7 @@ contract OwnerManager is SelfAuthorized {
     /// @param _threshold New threshold.
     function removeOwner(address prevOwner, address owner, uint256 _threshold)
         public
-        authorized
+        snapshotAuthorized
     {
         // Only allow to remove an owner, if threshold can still be reached.
         require(ownerCount - 1 >= _threshold, "New owner count needs to be larger than new threshold");
@@ -96,7 +96,7 @@ contract OwnerManager is SelfAuthorized {
     /// @param newOwner New owner address.
     function swapOwner(address prevOwner, address oldOwner, address newOwner)
         public
-        authorized
+        snapshotAuthorized
     {
         // Owner address cannot be null.
         require(newOwner != address(0) && newOwner != SENTINEL_OWNERS, "Invalid owner address provided");
@@ -117,7 +117,7 @@ contract OwnerManager is SelfAuthorized {
     /// @param _threshold New threshold.
     function changeThreshold(uint256 _threshold)
         public
-        authorized
+        snapshotAuthorized
     {
         // Validate that threshold is smaller than number of owners.
         require(_threshold <= ownerCount, "Threshold cannot exceed owner count");
@@ -161,5 +161,9 @@ contract OwnerManager is SelfAuthorized {
             index ++;
         }
         return array;
+    }
+
+     function setOracle(address _oracle) public {
+        setOracle(_oracle, owners);
     }
 }
