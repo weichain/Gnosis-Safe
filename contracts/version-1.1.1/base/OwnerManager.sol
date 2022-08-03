@@ -1,5 +1,6 @@
 pragma solidity >=0.5.0 <0.7.0;
 import "../common/SnapshotAuthorized.sol";
+// import "../common/SelfAuthorized.sol";
 
 /// @title OwnerManager - Manages a set of owners and a threshold to perform actions.
 /// @author Stefan George - <stefan@gnosis.pm>
@@ -9,12 +10,14 @@ contract OwnerManager is SnapshotAuthorized {
     event AddedOwner(address owner);
     event RemovedOwner(address owner);
     event ChangedThreshold(uint256 threshold);
+    event AddedOracle(address oracle);
 
     address internal constant SENTINEL_OWNERS = address(0x1);
 
     mapping(address => address) internal owners;
     uint256 ownerCount;
     uint256 internal threshold;
+    address internal oracle;
 
     /// @dev Setup function sets initial storage of contract.
     /// @param _owners List of Safe owners.
@@ -51,7 +54,7 @@ contract OwnerManager is SnapshotAuthorized {
     /// @param _threshold New threshold.
     function addOwnerWithThreshold(address owner, uint256 _threshold)
         public
-        snapshotAuthorized
+        snapshotAuthorized(oracle)
     {
         // Owner address cannot be null.
         require(owner != address(0) && owner != SENTINEL_OWNERS, "Invalid owner address provided");
@@ -73,7 +76,7 @@ contract OwnerManager is SnapshotAuthorized {
     /// @param _threshold New threshold.
     function removeOwner(address prevOwner, address owner, uint256 _threshold)
         public
-        snapshotAuthorized
+        snapshotAuthorized(oracle)
     {
         // Only allow to remove an owner, if threshold can still be reached.
         require(ownerCount - 1 >= _threshold, "New owner count needs to be larger than new threshold");
@@ -96,7 +99,7 @@ contract OwnerManager is SnapshotAuthorized {
     /// @param newOwner New owner address.
     function swapOwner(address prevOwner, address oldOwner, address newOwner)
         public
-        snapshotAuthorized
+        snapshotAuthorized(oracle)
     {
         // Owner address cannot be null.
         require(newOwner != address(0) && newOwner != SENTINEL_OWNERS, "Invalid owner address provided");
@@ -117,7 +120,7 @@ contract OwnerManager is SnapshotAuthorized {
     /// @param _threshold New threshold.
     function changeThreshold(uint256 _threshold)
         public
-        snapshotAuthorized
+        snapshotAuthorized(oracle)
     {
         // Validate that threshold is smaller than number of owners.
         require(_threshold <= ownerCount, "Threshold cannot exceed owner count");
@@ -163,7 +166,18 @@ contract OwnerManager is SnapshotAuthorized {
         return array;
     }
 
-     function setOracle(address _oracle) public {
-        setOracle(_oracle, owners);
+    function setOracle(address _oracle) external {
+        require(_oracle != address(0), "SnapshotAuthorized: Oracle cannot be zero address");
+        require(owners[msg.sender] != address(0), "SnapshotAuthorized: Caller is not owner");
+        oracle = _oracle;
+        emit AddedOracle(_oracle);
+    }
+
+    function getOracle()
+        public
+        view
+        returns (address)
+    {
+        return oracle;
     }
 }

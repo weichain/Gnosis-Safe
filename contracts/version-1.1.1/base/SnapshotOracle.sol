@@ -31,10 +31,10 @@ contract SnapshotOracle {
         onlyValidAddress(admin) 
     {
         // Check balance of new admin if eligible
-        require(_getBalanace(admin) >= ELIGIBLE_HYDRA_BALANCE_MIN, "SnapshotOracle: Below eligible hydra balance");
+        // require(_getBalanace(admin) >= ELIGIBLE_HYDRA_BALANCE_MIN, "SnapshotOracle: Below eligible hydra balance");
 
         // Check if new admin has atleast 6 months of staking activity
-        require(_getPastVotesTrailingPeriod(admin) > 0, "SnapshotOracle: Needs atleast 6 months of staking activity");
+        // require(_getPastVotesTrailingPeriod(admin) > 0, "SnapshotOracle: Needs atleast 6 months of staking activity");
 
         // Add eligible admin to GnosisSafe
         GnosisSafe(safeProxy).addOwnerWithThreshold(admin, _threshold);
@@ -44,13 +44,26 @@ contract SnapshotOracle {
         public
     {
         // Check balance of admin to remove
-        require(_getBalanace(admin) < ELIGIBLE_HYDRA_BALANCE_MIN, "SnapshotOracle: Must be below eligible hydra balance to remove admin");
+        // require(_getBalanace(admin) < ELIGIBLE_HYDRA_BALANCE_MIN, "SnapshotOracle: Must be below eligible hydra balance to remove admin");
 
         // Check if new admin has atleast 6 months of NON staking activity
-        require(_getPastVotesTrailingPeriod(admin) == 0, "SnapshotOracle: Needs atleast 6 months of NON staking activity");
+        // require(_getPastVotesTrailingPeriod(admin) == 0, "SnapshotOracle: Needs atleast 6 months of NON staking activity");
 
         // Remove non eligible admin from GnosisSafe
         GnosisSafe(safeProxy).removeOwner(prevAdmin, admin, _threshold);
+    }
+    
+    function changeThreshold(uint256 _threshold, address payable safeProxy) 
+        public
+    {
+        // Check balance of admin to remove
+        // require(_getBalanace(admin) < ELIGIBLE_HYDRA_BALANCE_MIN, "SnapshotOracle: Must be below eligible hydra balance to remove admin");
+
+        // Check if new admin has atleast 6 months of NON staking activity
+        // require(_getPastVotesTrailingPeriod(admin) == 0, "SnapshotOracle: Needs atleast 6 months of NON staking activity");
+
+        // Remove non eligible admin from GnosisSafe
+        GnosisSafe(safeProxy).changeThreshold(_threshold);
     }
 
     function _getBalanace(address addr)
