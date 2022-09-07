@@ -13,6 +13,12 @@ contract SnapshotOracle {
     // 6 months trailing period calculated in blocks (15778800 seconds divided by 128 seconds - average blocktime)
     uint32 public constant TRAILING_PERIOD = 123272;
 
+    // 1 week (7 days) period calculated in blocks (604800 seconds divided by 128 seconds - average blocktime)
+    uint32 public constant WEEK_IN_BLOCKS = 4725;
+
+    // (TRAILING_PERIOD / WEEK_IN_BLOCKS) to check full 6 months period - week by week on every exact 7 days timeframe
+    uint8 public constant REVISION_COUNT = 26;
+
     // minimum amount of hydra owned to be eligible for admin role
     uint64 public constant ELIGIBLE_HYDRA_BALANCE_MIN = 10000 * 1e8;
 
@@ -34,7 +40,7 @@ contract SnapshotOracle {
         require(_getBalanace(admin) >= ELIGIBLE_HYDRA_BALANCE_MIN, "SnapshotOracle: Below eligible hydra balance");
 
         // Check if new admin has atleast 6 months of staking activity
-        require(_getPastVotesTrailingPeriod(admin) > 0, "SnapshotOracle: Needs atleast 6 months of staking activity");
+        require(_getPastVotesTrailingPeriod(admin), "SnapshotOracle: Needs atleast 6 months of staking activity");
 
         // Add eligible admin to GnosisSafe
         GnosisSafe(safeProxy).addOwnerWithThreshold(admin, _threshold);
@@ -47,7 +53,7 @@ contract SnapshotOracle {
         require(_getBalanace(admin) < ELIGIBLE_HYDRA_BALANCE_MIN, "SnapshotOracle: Must be below eligible hydra balance to remove admin");
 
         // Check if new admin has atleast 6 months of NON staking activity
-        require(_getPastVotesTrailingPeriod(admin) == 0, "SnapshotOracle: Needs atleast 6 months of NON staking activity");
+        require(!_getPastVotesTrailingPeriod(admin), "SnapshotOracle: Needs atleast 6 months of NON staking activity");
 
         // Remove non eligible admin from GnosisSafe
         GnosisSafe(safeProxy).removeOwner(prevAdmin, admin, _threshold);
@@ -64,10 +70,19 @@ contract SnapshotOracle {
     function _getPastVotesTrailingPeriod(address addr)
         private
         view
-        returns (uint256)
+        returns (bool)
     {
         require(block.number >= TRAILING_PERIOD, "SnapshotOracle: Not enough blocks created");
-        return HydraStakeManager(bnHYDRA).getPastVotes(addr, block.number - TRAILING_PERIOD);
+        uint256 currentBlockToTrack = block.number;
+        uint256 comulativeForPeriod = 0;
+        for (uint256 i = 0; i < REVISION_COUNT; i++) {
+            comulativeForPeriod += HydraStakeManager(bnHYDRA).getPastVotes(addr, currentBlockToTrack);
+            currentBlockToTrack -= WEEK_IN_BLOCKS;
+        }
+        if (comulativeForPeriod > ELIGIBLE_HYDRA_BALANCE_MIN) {
+            return comulativeForPeriod / REVISION_COUNT >= ELIGIBLE_HYDRA_BALANCE_MIN;
+        } 
+        return false;
     }
     
 }
