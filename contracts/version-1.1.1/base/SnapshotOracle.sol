@@ -74,13 +74,14 @@ contract SnapshotOracle {
     {
         require(block.number >= TRAILING_PERIOD, "SnapshotOracle: Not enough blocks created");
         uint256 currentBlockToTrack = block.number;
-        uint256 comulativeForPeriod = 0;
+        uint256 cumulativeForPeriod = 0;
         for (uint256 i = 0; i < REVISION_COUNT; i++) {
-            comulativeForPeriod += HydraStakeManager(bnHYDRA).getPastVotes(addr, currentBlockToTrack);
+            cumulativeForPeriod += HydraStakeManager(bnHYDRA).getPastVotes(addr, currentBlockToTrack);
             currentBlockToTrack -= WEEK_IN_BLOCKS;
         }
-        if (comulativeForPeriod > ELIGIBLE_HYDRA_BALANCE_MIN) {
-            return comulativeForPeriod / REVISION_COUNT >= ELIGIBLE_HYDRA_BALANCE_MIN;
+        if (cumulativeForPeriod > ELIGIBLE_HYDRA_BALANCE_MIN) {
+            // average cumulative values must be >= to min eligible hydra staked (10_000 HYDRA)
+            return cumulativeForPeriod / REVISION_COUNT >= ELIGIBLE_HYDRA_BALANCE_MIN;
         } 
         return false;
     }
