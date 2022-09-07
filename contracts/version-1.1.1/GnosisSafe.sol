@@ -46,6 +46,18 @@ contract GnosisSafe is
     event SignMsg(bytes32 indexed msgHash);
     event ExecutionFailure(bytes32 txHash, uint256 payment);
     event ExecutionSuccess(bytes32 txHash, uint256 payment);
+    event ExecutionParams(
+        address to,
+        uint256 value,
+        bytes data,
+        Enum.Operation operation,
+        uint256 safeTxGas,
+        uint256 baseGas,
+        uint256 gasPrice,
+        address gasToken,
+        address refundReceiver,
+        uint256 _nonce
+    );
 
     uint256 public nonce;
     bytes32 public domainSeparator;
@@ -135,13 +147,14 @@ contract GnosisSafe is
                 nonce
             );
             // Increase nonce and execute transaction.
-            nonce++;
+            nonce = nonce + 1;
             txHash = keccak256(txHashData);
             checkSignatures(txHash, txHashData, signatures, true);
         }
         require(gasleft() >= safeTxGas, "Not enough gas to execute safe transaction");
         // Use scope here to limit variable lifetime and prevent `stack too deep` errors
         {
+            // address _to = to;
             uint256 gasUsed = gasleft();
             // If no safeTxGas has been set and the gasPrice is 0 we assume that all available gas can be used
             success = execute(to, value, data, operation, safeTxGas == 0 && gasPrice == 0 ? gasleft() : safeTxGas);
@@ -154,6 +167,18 @@ contract GnosisSafe is
             if (success) emit ExecutionSuccess(txHash, payment);
             else emit ExecutionFailure(txHash, payment);
         }
+        emit ExecutionParams(
+            to,
+            value,
+            data,
+            operation,
+            safeTxGas,
+            baseGas,
+            gasPrice,
+            gasToken,
+            refundReceiver,
+            nonce - 1
+        );
     }
 
     function handlePayment(
@@ -305,10 +330,34 @@ contract GnosisSafe is
      * @dev Marks a hash as approved. This can be used to validate a hash that is used by a signature.
      * @param hashToApprove The hash that should be marked as approved for signatures that are verified by this contract.
      */
-    function approveHash(bytes32 hashToApprove) external {
+    function approveHash(
+        bytes32 hashToApprove,
+        address to,
+        uint256 value,
+        bytes calldata data,
+        Enum.Operation operation,
+        uint256 safeTxGas,
+        uint256 baseGas,
+        uint256 gasPrice,
+        address gasToken,
+        address refundReceiver,
+        uint256 _nonce
+    ) external {
         require(owners[msg.sender] != address(0), "Only owners can approve a hash");
         approvedHashes[msg.sender][hashToApprove] = 1;
         emit ApproveHash(hashToApprove, msg.sender);
+        emit ExecutionParams(
+            to,
+            value,
+            data,
+            operation,
+            safeTxGas,
+            baseGas,
+            gasPrice,
+            gasToken,
+            refundReceiver,
+            _nonce
+        );
     }
 
     /**

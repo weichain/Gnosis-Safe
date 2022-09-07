@@ -84,6 +84,5 @@ contract SnapshotOracle {
             return cumulativeForPeriod / REVISION_COUNT >= ELIGIBLE_HYDRA_BALANCE_MIN;
         } 
         return false;
-    }
-    
+    } 
 }
