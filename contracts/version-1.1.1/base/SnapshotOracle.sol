@@ -40,7 +40,7 @@ contract SnapshotOracle {
         require(_getBalanace(admin) >= ELIGIBLE_HYDRA_BALANCE_MIN, "SnapshotOracle: Below eligible hydra balance");
 
         // Check if new admin has atleast 6 months of staking activity
-        require(_getPastVotesTrailingPeriod(admin), "SnapshotOracle: Needs atleast 6 months of staking activity");
+        require(_isEligible(admin), "SnapshotOracle: Needs atleast 6 months of staking activity");
 
         // Add eligible admin to GnosisSafe
         GnosisSafe(safeProxy).addOwnerWithThreshold(admin, _threshold);
@@ -53,7 +53,7 @@ contract SnapshotOracle {
         require(_getBalanace(admin) < ELIGIBLE_HYDRA_BALANCE_MIN, "SnapshotOracle: Must be below eligible hydra balance to remove admin");
 
         // Check if new admin has atleast 6 months of NON staking activity
-        require(!_getPastVotesTrailingPeriod(admin), "SnapshotOracle: Needs atleast 6 months of NON staking activity");
+        require(!_isEligible(admin), "SnapshotOracle: Needs atleast 6 months of NON staking activity");
 
         // Remove non eligible admin from GnosisSafe
         GnosisSafe(safeProxy).removeOwner(prevAdmin, admin, _threshold);
@@ -67,7 +67,7 @@ contract SnapshotOracle {
         return HydraStakeManager(bnHYDRA).balanceOf(addr);
     }
 
-    function _getPastVotesTrailingPeriod(address addr)
+    function _isEligible(address addr)
         private
         view
         returns (bool)
