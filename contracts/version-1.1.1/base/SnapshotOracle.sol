@@ -24,43 +24,35 @@ contract SnapshotOracle {
     uint64 public constant ELIGIBLE_HYDRA_BALANCE_MIN = 10000 * 1e8;
     
     // presicion to calculate persentage of admins since division with float numbers is not permited
-    uint256 public precision = 10 ** 4;
+    uint256 private precision = 10 ** 4;
 
     uint8 public thresholdPercentage;
 
-    event ThresholdPercentageChanged(uint8 previous, uint8 current);
+    event ThresholdPercentageChanged(address owner, uint8 previous, uint8 current);
 
-    constructor (address payable _gnosisSafeProxy, address payable _bnHYDRA, uint8 _thresholdPercentage) 
-        public 
-        isValidAddress(_gnosisSafeProxy)
-        isValidAddress(_bnHYDRA)
-        isValidPercentage(_thresholdPercentage)
+    constructor (address payable _gnosisSafeProxy, address payable _bnHYDRA, uint8 _thresholdPercentage)
+        public
     {
+        require(_thresholdPercentage > 0 && _thresholdPercentage <= 100, "Threshold percentage must be between 1 ~ 100");
         gnosisSafeProxy = _gnosisSafeProxy;
         bnHYDRA = _bnHYDRA;
         thresholdPercentage = _thresholdPercentage;
     }
 
     // Owner address cannot be zero address or sentinel owner.
-    modifier isValidAddress(address addr) {
-        require(addr != address(0) && addr != SENTINEL_OWNER, "SnapshotOracle: Invalid hydra address provided");
-        _;
-    }
-
-    // Owner address cannot be zero address or sentinel owner.
-    modifier isValidPercentage(uint8 _thresholdPercentage) {
-        require(_thresholdPercentage > 0 && _thresholdPercentage <= 100, "Threshold percentage must be between 1 ~ 100");
+    modifier onlyValidAddress(address addr) {
+        require(addr != address(0) && addr != SENTINEL_OWNER, "SnapshotOracle: Invalid owner address provided");
         _;
     }
 
     function addAdminWithTreshhold(address admin)
         public
-        isValidAddress(admin) 
+        onlyValidAddress(admin) 
     {
-        // // Check balance of new admin if eligible
+        // Check balance of new admin if eligible
         // require(address(admin).balance >= ELIGIBLE_HYDRA_BALANCE_MIN, "SnapshotOracle: Below eligible hydra balance");
 
-        // // Check if new admin has atleast 6 months of staking activity
+        // Check if new admin has atleast 6 months of staking activity
         // require(isEligible(admin), "SnapshotOracle: Needs atleast 12 months of staking activity");
 
         address[] memory owners = OwnerManager(gnosisSafeProxy).getOwners();
@@ -68,15 +60,18 @@ contract SnapshotOracle {
         // Add eligible admin to GnosisSafe
         OwnerManager(gnosisSafeProxy).addOwnerWithThreshold(admin, getAdminsByPercentage(owners.length + 1));
     }
-
+    
     function removeAdmin(address prevAdmin, address admin) 
         public
-        isValidAddress(admin)
+        onlyValidAddress(admin)
     {
-        // // Check balance of admin to remove
+        // Caller must be orresponding Gnosis Safe Proxy contract
+        require(address(msg.sender) == address(gnosisSafeProxy), "SnapshotOracle: Must be call through corresponding Gnosis Safe Proxy contract");
+
+        // Check balance of admin to remove
         // require(address(admin).balance < ELIGIBLE_HYDRA_BALANCE_MIN, "SnapshotOracle: Must be below eligible hydra balance to remove admin");
 
-        // // Check if new admin has atleast 6 months of NON staking activity
+        // Check if new admin has atleast 6 months of NON staking activity
         // require(!isEligible(admin), "SnapshotOracle: Needs atleast 12 months of NON staking activity");
 
         address[] memory owners = OwnerManager(gnosisSafeProxy).getOwners();
@@ -120,23 +115,18 @@ contract SnapshotOracle {
             return result;
         }
         uint256 z_max = z_min.add(precision);
-        if (z.sub(precision.div(2)) <= z_min) {
-            result = z_min.div(precision);
-        }
-        if (z.add(precision.div(2)) >= z_max) {
-            result = z_max.div(precision);
-        }
+        result = z == z_min ? z_min.div(precision) : z_max.div(precision);
         return result;
     }
-    
+
     function setThresholdPercentage(uint8 _thresholdPercentage)
         public 
-        isValidPercentage(_thresholdPercentage)
     {
-        require(OwnerManager(gnosisSafeProxy).isOwner(msg.sender), "SnapshotOracle: Sender is not an owner");
+        require(_thresholdPercentage > 0 && _thresholdPercentage <= 100, "Threshold percentage must be between 1 ~ 100");
         require(thresholdPercentage != _thresholdPercentage, "SnapshotOracle: Identical threshold percentage value");
+        require(OwnerManager(gnosisSafeProxy).isOwner(address(msg.sender)), "SnapshotOracle: Sender is not an owner");
         uint8 previous = thresholdPercentage;
         thresholdPercentage = _thresholdPercentage;
-        emit ThresholdPercentageChanged(previous, thresholdPercentage);
+        emit ThresholdPercentageChanged(msg.sender, previous, thresholdPercentage);
     }
 }
