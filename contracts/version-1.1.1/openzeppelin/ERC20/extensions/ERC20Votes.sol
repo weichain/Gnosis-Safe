@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.5.0 <0.7.0;
 
-import "@openzeppelin/contracts/math/Math.sol";
-import "@openzeppelin/contracts/utils/SafeCast.sol";
+import "../../utils/Math.sol";
+import "../../utils/SafeCast.sol";
 import "./draft-ERC20Permit.sol";
 import "../../utils/cryptography/ECDSA.sol";
 

@@ -119,8 +119,7 @@ contract OwnerManager is SnapshotAuthorized {
     ///      This can only be done via a Safe transaction.
     /// @param _threshold New threshold.
     function changeThreshold(uint256 _threshold)
-        public
-        snapshotAuthorized(oracle)
+        private
     {
         // Validate that threshold is smaller than number of owners.
         require(_threshold <= ownerCount, "Threshold cannot exceed owner count");
